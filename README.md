@@ -23,12 +23,38 @@ The plugin contains only the subagents, so nothing is installed twice.
 
 ## Why these skills exist
 
-mattpocock/skills ends with `/implement`: one ticket, one session. A spec worth writing down has many tickets, so that meant running `/implement` by hand for every ticket, reviewing every result by hand, and never getting `/ponytail-review` into the loop properly. The executors here fix that.
+### The problem: one spec, many tickets, one session
 
-- `/to-design` exists because otherwise the implementer decides the architecture. It turns the spec into modules with real signatures, a file layout and wiring, before any ticket is cut.
-- The executors implement every ticket in its own session and its own worktree, in the order the ticket graph allows, and then review each one from several angles: correctness, simplicity (ponytail), security, and a verification run of the project's own commands. The code that comes out is far better than `/implement` on one big spec. The token cost is high; the quality is worth it.
-- A run is hands-off, so features overlap: plan one, start its executor, start planning the next. When a run finishes, review its output and run the chain again if needed.
-- `/to-plan` and `/run-plan` were the first executor: a plan with segments and checkpoints, run by an interactive agent team with a review panel and a merge gate. It grew too heavy: its segment reviews outgrew what a single session could carry. `/to-workflow` and `/run-workflow` replaced it as the main flow: one ticket at a time with background agents, all state in git and ticket comments, resumable from any session.
+The mattpocock/skills pipeline goes grill → `/to-spec` → `/to-tickets` → `/implement`. That last step implements one ticket in the current session. For a small change that is fine. A spec worth writing down produces five to fifteen tickets, and then the loop becomes: run `/implement` on ticket 1, wait, read the diff, commit, run `/implement` on ticket 2, wait, read the diff, and so on, by hand, for every ticket. It is tedious, and it is where quality slips.
+
+It slips for two reasons. First, the session that wrote the code is the session that reviews it, with a context full of its own decisions, so the review is not really independent. Second, the review is one-dimensional: `/code-review` checks the diff against the spec and the coding standards, but a simplicity review with the ponytail discipline never fit into that loop, and neither did a security pass or a verification run. Over a big spec the small compromises add up and the code drifts toward a ball of mud, even though every single ticket looked fine.
+
+### What the executors do instead
+
+`/to-workflow` reads the tickets and their blocked-by edges, the design from `/to-design`, and the project's test, lint, typecheck and build commands, and writes one `workflow.json` describing the run. `/run-workflow` then executes it, ticket by ticket, without you:
+
+1. Every ticket whose blockers are merged gets its own implementer: a fresh background agent in its own worktree on its own branch, with nothing in its context but the ticket, the design and the coding standards. Nothing from the other tickets, nothing from this README, nothing from your chat.
+2. When the implementer is done, four reviewers look at the result, each one a fresh agent with one job: a code review against the ticket and the standards, a ponytail review that hunts for what to delete, a security review, and a verifier that runs the project's real test, lint, typecheck and build commands.
+3. Findings go back to the implementer as a fix turn, then the verifier runs again. Green means a merger rebases the ticket branch and fast-forwards it into the feature branch. A ticket that is still red after `maxTurns` is handed to you with a comment on the ticket saying exactly what failed.
+4. Tickets that only a person can do get a written guide instead of an implementation. After every transition the session prints a board with the state of every ticket.
+
+`/to-plan` and `/run-plan` do the same job with a different shape: a plan with segments and checkpoints, executed by an interactive agent team with a review lead, a lens panel and a product-owner gate. That was the first version and it is still here, but it is the alternate route. See below for why.
+
+### Why the output is better
+
+Each agent sees one ticket, not the whole spec, so it cannot cut corners on ticket 7 to make up for ticket 3. The reviewers did not write the code they review. Simplicity is a review stage of its own, so the ponytail discipline is applied to every ticket instead of being something you remember to ask for. And nothing merges before the project's own commands pass. The code that comes out of a run is noticeably better than what `/implement` produces on one big spec in one session. The price is tokens: six agents per ticket plus two per fix round. For me that price is worth paying.
+
+### Working on several things at once
+
+A run needs nothing from you until it finishes or a ticket fails. So the working rhythm becomes: grill and spec feature A, cut its tickets, start its executor, and while it runs, start grilling feature B or a bug fix in another session. Each run lives on its own feature branch in its own worktree with its own `.scratch/<slug>/`, so runs do not interfere. When a run finishes, review the feature branch as a whole. If something is missing, write the follow-up tickets and run the chain again on those.
+
+### Why `/to-design` sits in front of it
+
+Once every ticket is implemented by a different agent, nobody is holding the architecture. Each implementer would decide module boundaries, signatures and file layout for its own ticket, and ten tickets would produce ten opinions. `/to-design` settles that once, on the spec, before any ticket is cut: modules with real signatures, the file layout, the data, the wiring and the rules. `/to-tickets` reads it, `/to-workflow` copies it into the run, and every implementer and reviewer gets it pasted into their prompt.
+
+### Why there are two executors
+
+`/to-plan` and `/run-plan` came first. They run a plan of segments with scoped and barrier checkpoints, through an agent team that lives in one session: implementers, a review lead, lens reviewers, arbiters, a product owner, plus a git hook that blocks merges on red pipelines or open findings threads. It works, but it is heavy. It needs 36 generated agent stubs, and the review threads of a segment grew until a single session could no longer carry them. `/to-workflow` and `/run-workflow` are the rewrite: one ticket at a time, every agent a background agent, all state in git and in comments on the tickets, so a new session can pick up a run exactly where the last one stopped. Use the plan executor when you want live checkpoints and an interactive team; use the workflow executor for everything else.
 
 ## Where they sit in the pipeline
 
