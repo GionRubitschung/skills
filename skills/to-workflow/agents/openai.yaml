@@ -1,0 +1,5 @@
+interface:
+  display_name: "To Workflow"
+  short_description: "Prepare workflow.json for /run-workflow"
+policy:
+  allow_implicit_invocation: false

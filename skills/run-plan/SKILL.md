@@ -1,6 +1,7 @@
 ---
 name: run-plan
 description: Execute a /to-plan implementation plan with an orchestrated agent team — DAG-scheduled parallel TDD implementation in isolated worktrees, a diverse-lens review panel with durable findings threads, a product-owner gate, and a git-hook merge gate that blocks on red pipelines or open threads. Use when the user wants to run an implementation plan, orchestrate parallel issue implementation across an agent team, or execute the output of /to-plan.
+disable-model-invocation: true
 ---
 
 # Run Plan

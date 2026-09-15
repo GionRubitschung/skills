@@ -1,0 +1,5 @@
+interface:
+  display_name: "Run Workflow"
+  short_description: "Implement the tickets in workflow.json with background agents"
+policy:
+  allow_implicit_invocation: false

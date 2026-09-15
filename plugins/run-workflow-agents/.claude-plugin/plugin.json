@@ -1,0 +1,6 @@
+{
+  "name": "run-workflow-agents",
+  "description": "The seven wf-* subagents /run-workflow spawns. Skills install separately via npx skills add GionRubitschung/skills.",
+  "version": "0.1.0",
+  "author": { "name": "Gion Andri Rubitschung" }
+}

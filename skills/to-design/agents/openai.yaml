@@ -1,0 +1,5 @@
+interface:
+  display_name: "To Design"
+  short_description: "Fully concrete implementation design as a comment on the spec"
+policy:
+  allow_implicit_invocation: false

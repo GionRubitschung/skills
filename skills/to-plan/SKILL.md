@@ -1,6 +1,7 @@
 ---
 name: to-plan
 description: Turn a PRD's blocked-by issue graph into a segmented, dependency-DAG implementation plan with per-issue review lenses, and create the baseline worktree it executes against. Interviews the user to place checkpoints (scoped or barrier) and capture HITL decisions. Use when the user wants to plan parallel implementation of a set of issues, schedule multi-issue work for an agent team, or prepare a plan for /run-plan.
+disable-model-invocation: true
 ---
 
 # To Plan

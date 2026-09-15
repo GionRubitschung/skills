@@ -1,0 +1,11 @@
+{
+  "name": "gion-skills",
+  "owner": { "name": "Gion Andri Rubitschung" },
+  "plugins": [
+    {
+      "name": "run-workflow-agents",
+      "source": "./plugins/run-workflow-agents",
+      "description": "Subagent definitions for the /run-workflow skill."
+    }
+  ]
+}
