@@ -1,6 +1,6 @@
 ---
 name: to-workflow
-description: Prepare a workflow.json that /run-workflow executes: the ticket DAG, repo state, verification commands and models for implementing a set of tickets with background agents.
+description: "Prepare a workflow.json that /run-workflow executes: the ticket DAG, repo state, verification commands and models for implementing a set of tickets with background agents."
 disable-model-invocation: true
 ---
 

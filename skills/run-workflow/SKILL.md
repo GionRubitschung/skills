@@ -1,6 +1,6 @@
 ---
 name: run-workflow
-description: Execute a /to-workflow workflow.json from this session: implement its tickets with background agents, review, fix and merge each one, hand human tickets and failures to the user.
+description: "Execute a /to-workflow workflow.json from this session: implement its tickets with background agents, review, fix and merge each one, hand human tickets and failures to the user."
 disable-model-invocation: true
 ---
 
