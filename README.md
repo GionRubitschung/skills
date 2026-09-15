@@ -23,11 +23,12 @@ The plugin contains only the subagents, so nothing is installed twice.
 
 ## Why these skills exist
 
-The pipeline from mattpocock/skills ends at `/to-tickets` and `/implement`: one ticket, one session. These skills cover what comes before and after.
+mattpocock/skills ends with `/implement`: one ticket, one session. A spec worth writing down has many tickets, so that meant running `/implement` by hand for every ticket, reviewing every result by hand, and never getting `/ponytail-review` into the loop properly. The executors here fix that.
 
-- `/to-design` exists because otherwise the implementer decides the architecture. It turns a spec into modules with real signatures, a file layout and wiring, before any ticket is cut.
-- `/to-plan` and `/run-plan` were the first executor: a plan with segments and checkpoints, run by an interactive agent team with a review panel and a merge gate. It grew too heavy: its segment reviews outgrew what a single session could carry.
-- `/to-workflow` and `/run-workflow` are the second executor and the main flow. They run one ticket at a time with background agents, keep all state in git and ticket comments, and resume from any session.
+- `/to-design` exists because otherwise the implementer decides the architecture. It turns the spec into modules with real signatures, a file layout and wiring, before any ticket is cut.
+- The executors implement every ticket in its own session and its own worktree, in the order the ticket graph allows, and then review each one from several angles: correctness, simplicity (ponytail), security, and a verification run of the project's own commands. The code that comes out is far better than `/implement` on one big spec. The token cost is high; the quality is worth it.
+- A run is hands-off, so features overlap: plan one, start its executor, start planning the next. When a run finishes, review its output and run the chain again if needed.
+- `/to-plan` and `/run-plan` were the first executor: a plan with segments and checkpoints, run by an interactive agent team with a review panel and a merge gate. It grew too heavy: its segment reviews outgrew what a single session could carry. `/to-workflow` and `/run-workflow` replaced it as the main flow: one ticket at a time with background agents, all state in git and ticket comments, resumable from any session.
 
 ## Where they sit in the pipeline
 
