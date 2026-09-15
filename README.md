@@ -4,7 +4,30 @@ Hand-authored agent skills that extend the [mattpocock/skills](https://github.co
 
 ## Installation
 
-Prerequisite: install [mattpocock/skills](https://github.com/mattpocock/skills) and run `/setup-matt-pocock-skills` once per repo. Every skill here reads the issue tracker and domain docs that setup configures.
+### Prerequisites
+
+These skills call other people's skills by name, so install those first:
+
+1. **[mattpocock/skills](https://github.com/mattpocock/skills)**, then run `/setup-matt-pocock-skills` once per repo. Every skill here reads the issue tracker and domain docs that setup configures, and they invoke `grilling`, `domain-modeling`, `codebase-design`, `to-spec`, `to-tickets`, `code-review` and `tdd` from that repo.
+
+   ```sh
+   npx skills@latest add mattpocock/skills
+   ```
+
+2. **[ponytail](https://github.com/DietrichGebert/ponytail)** as a Claude Code plugin. The implementers run under `ponytail:ponytail` and the simplicity review is `ponytail:ponytail-review`; both are called by their plugin-scoped names, so the plugin install is required, not the npx one.
+
+   ```sh
+   claude plugin marketplace add DietrichGebert/ponytail
+   claude plugin install ponytail@ponytail -s user
+   ```
+
+3. **`security-review`** from [getsentry/skills](https://github.com/getsentry/skills). The security reviewer invokes it.
+
+   ```sh
+   npx skills@latest add getsentry/skills --skill security-review
+   ```
+
+### The skills
 
 ```sh
 npx skills@latest add GionRubitschung/skills
@@ -107,6 +130,7 @@ Executes a `workflow.json`. The session is the orchestrator: it spawns backgroun
 - **Per ticket:** `implement → review (code, simplicity, security, verify) → (fix → verify)* → integrate`, each in its own worktree, merged fast-forward into the feature branch. Human tickets get a written guide instead.
 - **State:** rebuilt from git and ticket comments on every start, so a new session resumes a run where the last one stopped.
 - **Requires:** the `run-workflow-agents` plugin. Without it the first spawn is refused and the skill tells you the install commands.
+- **Uses:** `code-review` and `tdd` from mattpocock/skills, `ponytail:ponytail` and `ponytail:ponytail-review` from the ponytail plugin, `security-review` from getsentry/skills.
 
 ### to-plan
 
@@ -129,7 +153,7 @@ Executes a plan from `/to-plan` with an orchestrated agent team: DAG-scheduled p
 
 - **Input:** the plan from `/to-plan`.
 - **Requires:** its agent stubs in `~/.claude/agents/`. Generate them once with the skill's `scripts/generate-agent-stubs.sh`, then restart Claude Code. The skill aborts when they are missing or stale.
-- **Uses:** `tdd` from mattpocock/skills, and `ponytail-review` for the simplicity lens.
+- **Uses:** `tdd` from mattpocock/skills, `ponytail:ponytail` for the implementers and `ponytail:ponytail-review` for the simplicity lens.
 
 ## Other skills
 
