@@ -26,10 +26,10 @@ Record also the **design**: the last comment on the parent spec whose first bold
 
 - **Baseline**: feature branch `feat/<slug>` checked out in its own worktree at `.claude/worktrees/<slug>`. Reuse both when they exist. Otherwise the base is the current branch, or the `HEAD` commit when detached; the user may name another base in step 3. Every ticket branches off this baseline and merges back into it; `/run-workflow` works from this worktree.
 - **Done** tickets: the issue is closed, a local file's `Status:` is `resolved`, `done` or `closed`, or — only when `feat/<slug>` exists — `git log feat/<slug> --grep '^<closes trailer with the id>$'` finds a commit. Drop them from the list and from every `blockedBy`. Everything else stays, human and blocked tickets included; `/run-workflow` derives the rest of the state itself.
-- Verification commands: from CLAUDE.md, `package.json` scripts, Makefile and CI config, pick the project's test, lint, typecheck and build commands. Each runs non-interactively from the worktree root and exits non-zero on failure; run each once on the current tree to confirm it starts.
-- Guards: `git worktree list` shows `feat/<slug>` checked out anywhere other than `.claude/worktrees/<slug>` → stop and ask, the baseline must be the only checkout of that branch. `.git/info/exclude` lacks the lines `.claude/worktrees/` or `.scratch/` → added in step 4. The docs the run relies on — `CONTEXT.md`, `CONTEXT-MAP.md`, `docs/adr/`, `CODING_STANDARDS.md`, `ARCHITECTURE.md` — show changes in `git status --porcelain -- <paths>`, or exist in the checkout but not on the base ref (`git cat-file -e <base>:<path>` fails) → stop and ask the user to commit them: every worktree of the run is cut from the base ref and would not see them.
+- Verification commands: from CLAUDE.md, `package.json` scripts, Makefile and CI config, pick the project's test, lint, typecheck and build commands. Each runs non-interactively from the worktree root and exits non-zero on failure. Run all of them at once on the current tree as background Bash calls and wait for every completion; `verifyTimeoutMs` is five times the longest wall clock, at least 600000.
+- Guards: `git worktree list` shows `feat/<slug>` checked out anywhere other than `.claude/worktrees/<slug>` → stop and ask, the baseline must be the only checkout of that branch. `.git/info/exclude` lacks the lines `.claude/worktrees/` or `.scratch/` → added in step 4. The docs the run relies on — `CONTEXT.md`, `CONTEXT-MAP.md`, `docs/adr/`, `CODING_STANDARDS.md`, `ARCHITECTURE.md` — show changes in `git status --porcelain -- <paths>`, or exist in the checkout but not on the base ref (`git cat-file -e <base>:<path>` fails) → stop and ask the user to commit them: every worktree of the run is cut from the base ref and would not see them. `${BASH_MAX_TIMEOUT_MS:-600000}` below `verifyTimeoutMs` → step 4 raises it.
 
-**Done when:** every remaining ticket is classified, the verification commands are chosen (fewer than four only when the project lacks that step), all three guards checked.
+**Done when:** every remaining ticket is classified, the verification commands are chosen (fewer than four only when the project lacks that step) and timed, all four guards checked.
 
 ### 3. Confirm once
 
@@ -39,7 +39,7 @@ Show the user, in one message:
 - the baseline: base ref, feature branch, worktree path, and whether each already exists or will be created;
 - tracker kind and closes trailer, the parent that receives the final report;
 - the design: `Design v<n>` from the parent, or `no design`; whether `CODING_STANDARDS.md` and `ARCHITECTURE.md` were found;
-- the verification commands;
+- the verification commands and `verifyTimeoutMs`; when the ceiling guard fired, that `.claude/settings.json` gets `env.BASH_MAX_TIMEOUT_MS` = `verifyTimeoutMs`, committed on the current branch;
 - the model table with the defaults: `implementer` is `sonnet`; `reviewer` (code-review, ponytail-review and security-review) is `fable`; `verifier`, `merger` and `guide` are `haiku`; `inherit` means the session model;
 - `maxTurns`, default 5: implement or fix runs a ticket gets before it is handed to the user;
 - the agent count: 6 per runnable agent ticket plus 2 per fix round, 1 per human ticket.
@@ -61,6 +61,7 @@ Apply every change the user asks for. Nothing is written before they approve.
   "baseline": ".claude/worktrees/greeting-api",
   "worktrees": ".claude/worktrees",
   "verify": ["npm test", "npm run lint", "npm run typecheck", "npm run build"],
+  "verifyTimeoutMs": 900000,
   "tracker": "local",
   "closesTrailer": "Ticket: {id}",
   "parent": ".scratch/greeting-api/spec.md",
@@ -75,9 +76,9 @@ Apply every change the user asks for. Nothing is written before they approve.
 }
 ```
 
-`baseline` is the worktree where `featureBranch` is checked out, repo-relative. `tracker` is `local`, `github` or `gitlab`. `closesTrailer` is `Ticket: {id}` for local files and `Closes #{id}` on GitHub and GitLab. `parent` is the issue number, or the repo-relative spec path for local files. `ref` is repo-relative. Models are `inherit` or an Agent-tool alias: `sonnet`, `opus`, `haiku`, `fable`. `design`, `standards` and `architecture` carry the full text, never a path, so no agent has to go and read a file; each is `null` when absent.
+`baseline` is the worktree where `featureBranch` is checked out, repo-relative. `verifyTimeoutMs` is the Bash `timeout` every agent passes to a verification command. `tracker` is `local`, `github` or `gitlab`. `closesTrailer` is `Ticket: {id}` for local files and `Closes #{id}` on GitHub and GitLab. `parent` is the issue number, or the repo-relative spec path for local files. `ref` is repo-relative. Models are `inherit` or an Agent-tool alias: `sonnet`, `opus`, `haiku`, `fable`. `design`, `standards` and `architecture` carry the full text, never a path, so no agent has to go and read a file; each is `null` when absent.
 
-Then create the baseline when missing: `git worktree add <repo>/.claude/worktrees/<slug> -b feat/<slug> <base>`, or without `-b … <base>` when the branch already exists. Add the exclude lines that are missing. Tell the user the baseline path and branch, and to run `/run-workflow <slug>`.
+When the ceiling guard fired: set `env.BASH_MAX_TIMEOUT_MS` to `verifyTimeoutMs` in `.claude/settings.json` (create it, or merge into the existing JSON keeping every other key), then `git add .claude/settings.json && git commit -m "chore: raise BASH_MAX_TIMEOUT_MS for /run-workflow"`. Then create the baseline when missing: `git worktree add <repo>/.claude/worktrees/<slug> -b feat/<slug> <base>`, or without `-b … <base>` when the branch already exists. Add the exclude lines that are missing. Tell the user the baseline path and branch, and to run `/run-workflow <slug>`; when the ceiling was raised, to restart Claude Code first, the env is read at session start.
 
 **Done when:** the file parses (`python3 -m json.tool` or `jq .`) and the hand-off message is sent.
 

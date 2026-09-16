@@ -59,3 +59,15 @@ _Avoid_: feature name, id
 **Baseline**:
 The worktree where `feat/<slug>` is checked out; every ticket branches from it and merges back into it.
 _Avoid_: main worktree, root, base
+
+**Turn**:
+One implement or fix run of a ticket; a ticket gets `maxTurns` of them before it is handed to the user.
+_Avoid_: LLM turn, reply, round, attempt (say "the agent returns" for the model's reply)
+
+**Verification command**:
+One command from the workflow's `verify` list, run from the worktree root; a non-zero exit is a failure.
+_Avoid_: test, check, pipeline, CI
+
+**Stuck**:
+An agent that cannot deliver its result line, for any reason; its ticket fails and waits on the user.
+_Avoid_: stalled, dead, hung, idle, timed out

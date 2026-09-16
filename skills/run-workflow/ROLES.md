@@ -1,6 +1,6 @@
 # Roles
 
-Briefs for the agents `/run-workflow` spawns. Every spawn is `Agent` with `subagent_type` set to the role's agent definition — `run-workflow-agents:wf-implementer`, `run-workflow-agents:wf-code-reviewer`, `run-workflow-agents:wf-ponytail-reviewer`, `run-workflow-agents:wf-security-reviewer`, `run-workflow-agents:wf-verifier`, `run-workflow-agents:wf-merger`, `run-workflow-agents:wf-guide` (the `run-workflow-agents` Claude Code plugin; each denies the Agent tool) — `description: "<role> for ticket <id>"`, `name`: `impl-<id>` for the implementer, otherwise `code-review-<id>`, `ponytail-review-<id>`, `security-review-<id>`, `verify-<id>`, `merge-<id>`, `guide-<id>` (the harness suffixes a repeated name), and `model` from `models` unless `inherit` (`models.reviewer` covers code-review, ponytail-review and security-review). Every prompt = **Context** + the role brief; the implementer, the fix, code-review and ponytail-review get **Design** between the two when `design` is not null; the guide gets only the first Context line. Values in `<…>` come from `workflow.json` and the ticket.
+Briefs for the agents `/run-workflow` spawns. Every spawn is `Agent` with `subagent_type` set to the role's agent definition — `run-workflow-agents:wf-implementer`, `run-workflow-agents:wf-code-reviewer`, `run-workflow-agents:wf-ponytail-reviewer`, `run-workflow-agents:wf-security-reviewer`, `run-workflow-agents:wf-verifier`, `run-workflow-agents:wf-merger`, `run-workflow-agents:wf-guide` (the `run-workflow-agents` Claude Code plugin; each denies the Agent tool, and all but the implementer and the guide deny every file-editing tool) — `description: "<role> for ticket <id>"`, `name`: `impl-<id>` for the implementer, otherwise `code-review-<id>`, `ponytail-review-<id>`, `security-review-<id>`, `verify-<id>`, `merge-<id>`, `guide-<id>` (the harness suffixes a repeated name), and `model` from `models` unless `inherit` (`models.reviewer` covers code-review, ponytail-review and security-review). Every prompt = **Context** + the role brief; the implementer, the fix, code-review and ponytail-review get **Design** between the two when `design` is not null; the guide gets only the first Context line. Values in `<…>` come from `workflow.json` and the ticket.
 
 ## Context (every prompt)
 
@@ -9,6 +9,7 @@ Feature "<slug>". Ticket <id> "<title>" (<ref>).
 Repo: <repo>. Feature branch: <featureBranch>, checked out in the baseline worktree <repo>/<baseline>. Ticket worktree: <repo>/<worktrees>/ticket-<id> on branch <featureBranch>-ticket-<id>.
 Run every command inside the ticket worktree (cd <worktree> && …) unless a step says otherwise. In the main checkout you only append to ticket files and write human-ticket guides under .scratch; never change its code or its branch. Never edit files in the baseline worktree.
 Verification commands, run from the worktree root: <verify, one per line>
+Run every verification command in the foreground with the Bash `timeout` parameter set to <verifyTimeoutMs>: a Bash call that outruns its timeout is moved to the background and its completion never reaches you, and `sleep` is blocked. A command that outruns <verifyTimeoutMs> makes your final line `<role> <id>: stuck — <command> exceeded <verifyTimeoutMs/1000>s`, with the `<role>` word your brief's final line starts with; the same `<role> <id>: stuck — <one reason>` is your final line whenever you cannot finish the brief.
 Ticket comments: <read recipe>. Post a comment: <post recipe>. Every comment you post starts with the line "> *Posted by the to-workflow run.*", then a blank line, then the bold event word given in your brief; the rest is plain prose for a human, no JSON.
 Your final text is exactly one line in the format given below and nothing else, no summary before it; everything else goes into a ticket comment.
 ```
@@ -37,7 +38,7 @@ Build the ticket as the Design says: the ticket decides what, the Design decides
 Implement the ticket below in full; its acceptance criteria are the checklist. Commit as you go; the last line of every commit message body is exactly: <closesTrailer with the id>
 Run the verification commands before finishing and fix what fails.
 Then post a comment: "**Implemented** on branch <featureBranch>-ticket-<id> (<n> commits)." followed by the criteria only a human can check (visual, device, external service), if any, as "Could not verify by running: …", and one line per deviation as "Deviation: <what> — <reason>".
-Final line: `impl <id>: done, <n> commits, <k> unverified` — or `impl <id>: stuck — <one reason>` when you cannot finish.
+Final line: `impl <id>: done, <n> commits, <k> unverified`
 
 Repo standards (CODING_STANDARDS.md):
 <standards>
@@ -57,6 +58,14 @@ The two doc sections are omitted when their value is null.
 Fix turn <n> of <maxTurns> for ticket <id>. Read the ticket comments (<read recipe>); address every finding marked [high] or [medium] in the review and verify comments posted after the last "Fix turn" comment, in the worktree, using /ponytail:ponytail, /tdd and the Design as before. Commit with the same trailer. Decline a finding only when acting on it would break an acceptance criterion.
 Then post a comment: "**Fix turn <n>** — addressed <a>, declined <d>." with one line per declined finding and its reason.
 Final line: `fix <id>: done, <a> addressed, <d> declined`
+```
+
+### rebase (the fix brief after a `conflict`, delivered the same way)
+
+```
+Fix turn <n> of <maxTurns> for ticket <id>: the merger could not rebase your branch. In the worktree: git rebase <featureBranch>; on a conflict invoke the Skill tool for "resolving-merge-conflicts" and finish the rebase. Run the verification commands and fix what fails, using /ponytail:ponytail, /tdd and the Design as before; commit with the same trailer.
+Then post a comment: "**Fix turn <n>** — rebased onto <featureBranch>, resolved <files>."
+Final line: `fix <id>: done, rebased`
 ```
 
 ## code-review
@@ -98,7 +107,7 @@ When all pass, post nothing; final line: `verify <id>: green`
 ## merger
 
 ```
-1. Inside the worktree: git rebase <featureBranch>. On a conflict invoke the Skill tool for "resolving-merge-conflicts" and finish the rebase; if it cannot be finished, final line `merge <id>: conflict — <files>`.
+1. Inside the worktree: git rebase <featureBranch>. On a conflict: git rebase --abort, final line `merge <id>: conflict — <files>`.
 2. Run every verification command. Any failure: post a comment headed "**Verify** — red after rebase" in the verifier's format, final line `merge <id>: red, <n> high`, and leave the worktree as it is.
 3. Fast-forward the feature branch in the baseline worktree: cd <repo>/<baseline> && git merge --ff-only <featureBranch>-ticket-<id>. "Not possible to fast-forward" or an index.lock in use: final line `merge <id>: tip-moved`. Any other refusal: `merge <id>: error — <message>`.
 4. cd <repo> && git worktree remove --force <worktree> && git branch -D <featureBranch>-ticket-<id>
@@ -120,6 +129,12 @@ Final line: `guide <id>: <path>`
 
 Ticket:
 <body>
+```
+
+## Nudge (`SendMessage`, once, to an agent whose return matched no format)
+
+```
+Your last reply was not your final line. A Bash call that outran its timeout was moved to the background and its completion never reaches you. Run it again in the foreground with the Bash timeout parameter set to <verifyTimeoutMs>, finish your brief, and reply with the final line only.
 ```
 
 ## Comments the orchestrator posts itself

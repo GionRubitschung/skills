@@ -114,8 +114,8 @@ npx skills@latest add GionRubitschung/skills --skill=to-workflow
 Prepares one `.scratch/<slug>/workflow.json` that `/run-workflow` executes and never modifies. Spawns no agents; writes nothing until you approve the summary.
 
 - **Input:** the tickets from `/to-tickets` (this session, a `.scratch/<slug>` directory, a parent issue, or a list of issue numbers), the latest **Design** comment, and the repo state.
-- **Output:** `workflow.json` with the ticket DAG, the baseline (`feat/<slug>` in `.claude/worktrees/<slug>`), the verification commands, the models per role and `maxTurns`.
-- **Guards:** stops on a dependency cycle, on a second checkout of the feature branch, and on uncommitted domain docs that the run's worktrees would not see.
+- **Output:** `workflow.json` with the ticket DAG, the baseline (`feat/<slug>` in `.claude/worktrees/<slug>`), the verification commands with their timeout, the models per role and `maxTurns`.
+- **Guards:** stops on a dependency cycle, on a second checkout of the feature branch, and on uncommitted domain docs that the run's worktrees would not see. Raises `BASH_MAX_TIMEOUT_MS` in `.claude/settings.json` when the measured timeout needs it.
 
 ### run-workflow
 

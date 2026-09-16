@@ -10,7 +10,7 @@ You are the **orchestrator** for the whole run. You spawn background agents, rea
 
 The argument is the slug, or the path of `.scratch/<slug>/workflow.json`; with no argument and exactly one such file in the repo, use it. Read it once; it never changes during a run. Its `baseline` is the worktree where the feature branch is checked out: run your own git commands there (`git -C <repo>/<baseline> …`); ticket files, human-ticket guides and `workflow.json` stay under `<repo>`.
 
-Harness facts this skill relies on: Agent-tool subagents run in the background and their final text arrives as a task notification; an agent spawned with a `name` is resumed after it finished by `SendMessage` to that name, in this session only; at most 20 subagents run at once, nested ones included, and a spawn over the cap is refused with "do not retry" — retry it after the next completion. Every agent of the run is spawned as one of the seven `run-workflow-agents:wf-*` agent definitions from the `run-workflow-agents` Claude Code plugin (loaded at session start); they deny the Agent tool, so no agent of the run can spawn sub-agents. A spawn refused as an unknown `subagent_type` means the plugin is not installed: stop and tell the user to run `claude plugin marketplace add GionRubitschung/skills` and `claude plugin install run-workflow-agents@gion-skills -s user`, then restart Claude Code and run `/run-workflow` again. `PushNotification` is a deferred tool: load it with `ToolSearch` before first use.
+Harness facts this skill relies on: Agent-tool subagents run in the background and their final text arrives as a task notification; an agent spawned with a `name` is resumed after it finished by `SendMessage` to that name, in this session only; at most 20 subagents run at once, nested ones included, and a spawn over the cap is refused with "do not retry" — retry it after the next completion; `TaskStop` with an agent's name stops it for good. A subagent's Bash call that outruns its timeout is moved to the background and its completion never reaches the subagent; the ceiling for that timeout is `BASH_MAX_TIMEOUT_MS`, read once at session start. Every agent of the run is spawned as one of the seven `run-workflow-agents:wf-*` agent definitions from the `run-workflow-agents` Claude Code plugin (loaded at session start); they deny the Agent tool, so no agent of the run can spawn sub-agents. A spawn refused as an unknown `subagent_type` means the plugin is not installed: stop and tell the user to run `claude plugin marketplace add GionRubitschung/skills` and `claude plugin install run-workflow-agents@gion-skills -s user`, then restart Claude Code and run `/run-workflow` again. `PushNotification` is a deferred tool: load it with `ToolSearch` before first use.
 
 ## Reading ticket comments
 
@@ -26,21 +26,21 @@ Classify every ticket in the file, first match wins:
 - **in flight** — the branch exists otherwise. Re-enter at **verify**; turns used = the number of **Fix turn** comments after the last **Fixed by the user** comment, plus one.
 - **fresh** — no branch.
 
-A ticket is **blocked** while any blocker is not merged, **ready** when all are. If the baseline worktree is missing, recreate it (`git worktree add <repo>/<baseline> <featureBranch>`). `touch <repo>/.scratch/<slug>/.run-started` (the token counter's start mark), print the board, then dispatch every ready ticket at once.
+A ticket is **blocked** while any blocker is not merged, **ready** when all are. If the baseline worktree is missing, recreate it (`git worktree add <repo>/<baseline> <featureBranch>`). When `${BASH_MAX_TIMEOUT_MS:-600000}` is below `verifyTimeoutMs` (600000 when the file predates that field), stop: print `Restart Claude Code to pick up .claude/settings.json, then run /run-workflow <slug> again.` and nothing else. `touch <repo>/.scratch/<slug>/.run-started` (the token counter's start mark), print the board, then dispatch every ready ticket at once.
 
 **Done when:** every ticket has a state and every ready ticket has an agent running or is `queued`.
 
 ## 2. Ticket lifecycle
 
-`implement → review → (fix → verify)* → integrate → merged | failed`. Each implement or fix run is one **turn**. A ticket gets `maxTurns` turns; red with all of them used → **failed**. Transitions read only the agent's one-line return; a return that matches no format counts as `stuck`.
+`implement → review → (fix → verify)* → integrate → merged | failed`. Each implement or fix run is one **turn**. A ticket gets `maxTurns` turns; red with all of them used → **failed**. Transitions read only the agent's one-line return. A return that matches no format gets one nudge (`SendMessage` with the Nudge text from ROLES.md); a second one counts as `stuck`. `stuck` from any agent → failed. Once a return is read, `TaskStop` that agent by name — except `impl-<id>`, which is stopped with the ticket's other five names at merged or failed.
 
-- **implement** — spawn `impl-<id>`. `done` → review. `stuck` → failed.
+- **implement** — spawn `impl-<id>`. `done` → review.
 - **review** — spawn all four reviewers: code-review, ponytail-review, security-review, verifier. The stage ends when all four have returned; a refused spawn is retried after the next completion. Any `high` or `medium` in any return → fix. None → integrate.
-- **fix** — `SendMessage` to `impl-<id>` with the fix brief. When no agent of that name exists in this session (after a resume or a user fix), spawn a fresh `impl-<id>` with the Context, the Design and the fix brief instead. Its return → verify.
+- **fix** — `SendMessage` to `impl-<id>` with the fix brief. When no agent of that name exists in this session (after a resume or a user fix), spawn a fresh `impl-<id>` with the Context, the Design and the fix brief instead. After a `conflict` the brief is the rebase brief. Its return → verify.
 - **verify** — spawn the verifier. `green` → integrate. `red` → fix.
-- **integrate** — spawn the merger. `merged <sha>` → merged. `red` → fix. `tip-moved` → integrate again. `conflict` or `error` → failed.
-- **failed** — post the Failed comment from ROLES.md, `PushNotification` naming the ticket, state becomes waiting on you; print its **Your turn** block. Its dependents stay blocked.
-- **merged** — dispatch every ticket this one unblocked; a human ticket it unblocked enters waiting on you: print its **Your turn** block.
+- **integrate** — spawn the merger. `merged <sha>` → merged. `red` → fix. `tip-moved` → integrate again. `conflict` → fix. `error` → failed.
+- **failed** — `TaskStop` the ticket's six names (`impl-<id>`, `code-review-<id>`, `ponytail-review-<id>`, `security-review-<id>`, `verify-<id>`, `merge-<id>`), post the Failed comment from ROLES.md, `PushNotification` naming the ticket, state becomes waiting on you; print its **Your turn** block. Its dependents stay blocked.
+- **merged** — `TaskStop` the ticket's six names; dispatch every ticket this one unblocked; a human ticket it unblocked enters waiting on you: print its **Your turn** block.
 
 ## 3. The board
 
