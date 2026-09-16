@@ -98,10 +98,10 @@ All pipeline skills are user-invoked (`disable-model-invocation: true`): they or
 npx skills@latest add GionRubitschung/skills --skill=to-design
 ```
 
-Turns a spec from `/to-spec` into a fully concrete implementation design: modules with real signatures, file layout, data, wiring and rules. Posts it as a comment on the spec and mirrors it into the repo's architecture docs.
+Turns a spec from `/to-spec` into a concrete implementation design: a concept (module map, wiring, file layout) you read, then the modules with real signatures, data and rules that implementers build from. Grills you with sketched options, posts the design as a comment on the spec, saves it to `.scratch/<slug>/design.md` and mirrors it into the repo's architecture docs.
 
 - **Input:** the spec (a `.scratch/<slug>/spec.md` path, an issue number or URL, or the one `/to-spec` produced in this session), plus `CONTEXT.md`, `docs/adr/`, `CODING_STANDARDS.md` and `ARCHITECTURE.md` when present.
-- **Output:** a **Design** comment on the spec, and the docs moved to the intended state.
+- **Output:** a **Design** comment on the spec, the same text in `.scratch/<slug>/design.md`, and the docs moved to the intended state. The chat shows the concept once, at the confirmation gate; the signatures are read from the file.
 - **Uses:** `codebase-design`, `domain-modeling`, `grilling` from mattpocock/skills.
 - **Downstream:** `/to-tickets` reads the design from the spec's comments; `/to-workflow` copies the latest design into `workflow.json`; `/run-workflow` pastes it into every implementer and reviewer prompt.
 

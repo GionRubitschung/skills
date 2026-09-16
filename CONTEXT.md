@@ -21,8 +21,20 @@ A ticket only a person can do; a run writes a guide for it instead of implementi
 _Avoid_: manual ticket, blocked ticket
 
 **Design**:
-The comment `/to-design` posts on a spec: modules, signatures, file layout, wiring and rules.
+The comment `/to-design` posts on a spec: a concept first, then the modules with their signatures, data, rules and prefactoring.
 _Avoid_: architecture, plan
+
+**Concept**:
+The visual half of a design, the part a person reads: module map, wiring order and file layout, drawn as sketches.
+_Avoid_: overview, summary, diagram, picture
+
+**Candidate**:
+One of the designs the sub-agents return in `/to-design`'s draft step; the grill questions are built from where candidates diverge.
+_Avoid_: draft, proposal, variant
+
+**Sketch**:
+A small structural drawing that stands in for code: a box diagram, an arrow list, a directory tree or a table. One per option in a grill question; several make up a concept. Never code.
+_Avoid_: example, mockup, snippet, illustration
 
 **Workflow**:
 The `workflow.json` file `/to-workflow` writes: the ticket DAG, repo state, verification commands and models for one run.
