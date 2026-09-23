@@ -35,7 +35,7 @@ npx skills@latest add GionRubitschung/skills
 
 Pick the skills you want and the agents to install them on. Update later with `npx skills update`.
 
-**Claude Code users:** `/run-workflow` spawns seven subagents that the `skills` CLI cannot install. Add them as a plugin, then restart Claude Code:
+**Claude Code users:** `/run-workflow` and `/ship` spawn subagents that the `skills` CLI cannot install. Add them as a plugin, then restart Claude Code:
 
 ```sh
 claude plugin marketplace add GionRubitschung/skills
@@ -84,6 +84,7 @@ Once every ticket is implemented by a different agent, nobody is holding the arc
 ```
 /grill-with-docs → /to-spec → [/to-design] → /to-tickets → /to-workflow → /run-workflow
                                                         └→ /to-plan → /run-plan
+/grill-with-docs → /ship                                  (one small piece of work, or a single ticket)
 ```
 
 `/grill-with-docs`, `/to-spec` and `/to-tickets` come from mattpocock/skills. `/to-design` is optional; the chain works without it. `/to-workflow` and `/run-workflow` are the main flow; `/to-plan` and `/run-plan` are the alternate executor for runs that need live checkpoints and an agent team.
@@ -131,6 +132,21 @@ Executes a `workflow.json`. The session is the orchestrator: it spawns backgroun
 - **State:** rebuilt from git and ticket comments on every start, so a new session resumes a run where the last one stopped.
 - **Requires:** the `run-workflow-agents` plugin. Without it the first spawn is refused and the skill tells you the install commands.
 - **Uses:** `code-review` and `tdd` from mattpocock/skills, `ponytail:ponytail` and `ponytail:ponytail-review` from the ponytail plugin, `security-review` from getsentry/skills.
+
+### ship
+
+```sh
+npx skills@latest add GionRubitschung/skills --skill=ship
+claude plugin install run-workflow-agents@gion-skills -s user   # Claude Code subagents
+```
+
+`/run-workflow` for exactly one piece of work, without the spec, tickets and workflow in front of it. Right after a grill whose shared understanding is small, or on a single existing ticket.
+
+- **Input:** a ticket (issue number or URL, or a local file), or nothing: then it writes `.scratch/<slug>/ticket.md` from the shared understanding in this session.
+- **Where:** asks once: the current directory on the current branch, uncommitted changes and all, or a worktree `.claude/worktrees/<slug>` on `feat/<slug>`.
+- **Per ticket:** `implement → review (code, simplicity, security, verify) → (fix → verify)*`, the same agents as `/run-workflow`, no merge step. One status line per transition; ends with the branch to open the PR from.
+- **State:** comments on the ticket, so `/ship <ticket>` in a new session resumes.
+- **Uses:** the same skills and plugin as `/run-workflow`.
 
 ### to-plan
 

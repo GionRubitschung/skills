@@ -1,0 +1,5 @@
+interface:
+  display_name: "Ship"
+  short_description: "Implement one ticket or the shared understanding with background agents"
+policy:
+  allow_implicit_invocation: false

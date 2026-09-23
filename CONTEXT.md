@@ -13,7 +13,7 @@ The ordered chain of skills a feature passes through, from grilling to merged co
 _Avoid_: workflow, flow, chain, harness
 
 **Ticket**:
-One unit of implementable work produced by `/to-tickets`, with blocked-by edges, stored as a local file or a tracker issue.
+One unit of implementable work, produced by `/to-tickets` with blocked-by edges or written by `/ship` from the conversation, stored as a local file or a tracker issue.
 _Avoid_: task, story
 
 **Human ticket**:
@@ -45,11 +45,11 @@ The plan file `/to-plan` writes: a segmented dependency DAG with checkpoints and
 _Avoid_: workflow
 
 **Executor**:
-The skill that runs a workflow or a plan to merged code: `/run-workflow` (the workflow executor) or `/run-plan` (the plan executor).
+The skill that runs a workflow, a plan or a single ticket to finished code: `/run-workflow` (the workflow executor), `/run-plan` (the plan executor) or `/ship` (the ticket executor).
 _Avoid_: harness, engine, runner
 
 **Run**:
-One execution of `/run-workflow` against a workflow, or `/run-plan` against a plan; resumable from any session.
+One execution of `/run-workflow` against a workflow, `/run-plan` against a plan, or `/ship` against a ticket; resumable from any session.
 _Avoid_: session, job
 
 **Slug**:
