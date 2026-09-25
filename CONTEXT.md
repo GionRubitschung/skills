@@ -65,8 +65,12 @@ One implement or fix run of a ticket; a ticket gets `maxTurns` of them before it
 _Avoid_: LLM turn, reply, round, attempt (say "the agent returns" for the model's reply)
 
 **Verification command**:
-One command from the workflow's `verify` list, run from the worktree root; a non-zero exit is a failure.
+One command from the workflow's `verify` list, run from the worktree root by the verifier and the merger, never by the implementer; a non-zero exit is a failure.
 _Avoid_: test, check, pipeline, CI
+
+**Setup command**:
+One command from the workflow's `setup` list, run from a worktree's root by whoever created the worktree, right after creating it; a non-zero exit fails the creation.
+_Avoid_: install, bootstrap, init, dev setup
 
 **Stuck**:
 An agent that cannot deliver its result line, for any reason; its ticket fails and waits on the user.
